@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <list>
 #include <utility>
+#include <set>
 
 
 /*
@@ -224,6 +225,18 @@ class graphNode {
 		int colorLimit;
 };
 
+int countDistinctColors(Graph g) {
+    set<int> colorSet;
+    for (auto v : g.getVertices()) {
+        if (v.color != -1) {
+            colorSet.insert(v.color);
+        }
+    }
+    return colorSet.size();
+}
+
+Graph minGraph, maxGraph;
+int minColors = INT_MAX, maxColors = 0;
 
 void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGraphs) {
 	// Get parent graph
@@ -252,6 +265,17 @@ void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGra
 						graphNode derivedNode(derivedGraph);
 						generateDerivedGraphs(&derivedNode, knownGraphs);
 						node->addDerived(derivedNode);	
+
+						int colorCount = countDistinctColors(derivedGraph);
+
+                        if (colorCount < minColors) {
+                            minColors = colorCount;
+                            minGraph = derivedGraph;
+                        }
+                        if (colorCount > maxColors) {
+                            maxColors = colorCount;
+                            maxGraph = derivedGraph;
+                        }
 					}	
 				}
 			}
@@ -284,7 +308,12 @@ int main() {
 
 	generateDerivedGraphs(&rootNode, knownGraphs);
 	
+	cout << "Minimum Graph (Least Colors: " << minColors << "):\n";
+    minGraph.displayGraph();
 
+    cout << "Maximum Graph (Most Colors: " << maxColors << "):\n";
+    maxGraph.displayGraph();
+	
 	// Maybe find a better way to display this
 	rootNode.displayNode();
 
