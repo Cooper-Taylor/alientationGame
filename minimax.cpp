@@ -236,9 +236,23 @@ int countDistinctColors(Graph g) {
     return colorSet.size();
 }
 
+int countPlacements(Graph g) {
+    int count = 0;
+    for (auto v : g.getVertices()) {
+        if (v.color != -1) {
+            count++;
+        }
+    }
+    return count;
+}
+
 Graph minGraph, maxGraph;
 int minColors = INT_MAX;
 int maxColors = 0;
+
+Graph minPlacementGraph, maxPlacementGraph;
+int minPlacements = INT_MAX;
+int maxPlacements = 0;
 
 void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGraphs) {
 	// Get parent graph
@@ -278,6 +292,16 @@ void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGra
                             maxColors = colorCount;
                             maxGraph = derivedGraph;
                         }
+
+						int placementCount = countPlacements(derivedGraph);
+						if (placementCount < minPlacements) {
+							minPlacements = placementCount;
+							minPlacementGraph = derivedGraph;
+						}
+						if (placementCount > maxPlacements) {
+							maxPlacements = placementCount;
+							maxPlacementGraph = derivedGraph;
+						}
 					}	
 				}
 			}
@@ -310,12 +334,20 @@ int main() {
 
 	generateDerivedGraphs(&rootNode, knownGraphs);
 	
-	cout << "Minimum Graph (Least Colors: " << minColors << "):\n";
+	cout << "Minimum Color Graph (Least Colors: " << minColors << "):\n";
     minGraph.displayGraph();
 	cout << endl;
 
-    cout << "Maximum Graph (Most Colors: " << maxColors << "):\n";
+    cout << "Maximum Ccolor Graph (Most Colors: " << maxColors << "):\n";
     maxGraph.displayGraph();
+	cout << endl;
+
+	cout << "Minimum Placement Graph (not fully filled) (Least Placements: " << minPlacements << "):\n";
+	minPlacementGraph.displayGraph();
+	cout << endl;
+
+	cout << "Maximum Placements Graph (Most Placements: " << maxPlacements << "):\n";
+	maxPlacementGraph.displayGraph();
 	cout << endl;
 	
 	// Maybe find a better way to display this
