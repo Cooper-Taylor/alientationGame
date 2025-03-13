@@ -4,6 +4,7 @@
 #include <list>
 #include <utility>
 #include <set>
+#include <climits>
 
 
 /*
@@ -236,7 +237,8 @@ int countDistinctColors(Graph g) {
 }
 
 Graph minGraph, maxGraph;
-int minColors = INT_MAX, maxColors = 0;
+int minColors = INT_MAX;
+int maxColors = 0;
 
 void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGraphs) {
 	// Get parent graph
@@ -299,7 +301,7 @@ int main() {
 	g.displayGraph();
 
 	// Is it viable?
-	cout << ((isViable(g)) ? "yes" : "no") << endl;
+	cout << ((isViable(g)) ? "yes" : "no") << endl << endl;
 
 	// Generate derived graphs
 	graphNode rootNode(g);
@@ -310,9 +312,11 @@ int main() {
 	
 	cout << "Minimum Graph (Least Colors: " << minColors << "):\n";
     minGraph.displayGraph();
+	cout << endl;
 
     cout << "Maximum Graph (Most Colors: " << maxColors << "):\n";
     maxGraph.displayGraph();
+	cout << endl;
 	
 	// Maybe find a better way to display this
 	rootNode.displayNode();
