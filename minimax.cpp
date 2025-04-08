@@ -57,6 +57,7 @@ class Graph {
 		Graph(int numVertices) {
 			for (int i = 0; i < numVertices; ++i) {
 				vertices.push_back(Vertex(i));
+				adjList.push_back({});
 			}
 		}
 
@@ -89,17 +90,17 @@ class Graph {
 		}
 
 		// Generic adjacency list get
-		unordered_map<int, list<int>> getAdjList() const {
+		vector<vector<int>> getAdjList() const {
 			return adjList;
 		}
 
 		// Get adjacency list of specific vertex
-		list<int> getAdjList(int vertexId) {
+		vector<int> getAdjList(int vertexId) {
 			if (vertexId >= 0 && vertexId < vertices.size()) {
 				return adjList[vertexId];
 			}
 			// Return empty list if invalid
-			return list<int>();
+			return vector<int>();
 		}
 
 		// Get number of vertices
@@ -123,44 +124,27 @@ class Graph {
 		}
 
 	private:
-		std::vector<Vertex> vertices; // List of vertices
-		std::unordered_map<int, std::list<int>> adjList; // Adjacency list for edges
+		vector<Vertex> vertices; // List of vertices
+		vector<vector<int>> adjList; // Adjacency list for edges
 };
 
-
 namespace std {
-	template <>
-		struct hash<Graph> {
-			size_t operator()(const Graph& g) const {
-				size_t hashValue = 0;
-
-				// Hash based on the number of vertices and the adjacency list (could add more sophisticated hashing)
-				for (const auto& vertex : g.getVertices()) {
-					hashValue ^= std::hash<int>()(vertex.id) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
-					// Hash the color as well if needed
-					hashValue ^= std::hash<int>()(vertex.color) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+	template <typename T>
+		struct hash<std::vector<T>> {
+			std::size_t operator()(const std::vector<T>& vec) const {
+				std::size_t seed = vec.size();
+				for(auto x : vec) {
+					x = ((x >> 16) ^ x) * 0x45d9f3b;
+					x = ((x >> 16) ^ x) * 0x45d9f3b;
+					x = (x >> 16) ^ x;
+					seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 				}
-
-				for (const auto& adj : g.getAdjList()) {
-					hashValue ^= std::hash<int>()(adj.first) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
-					for (const auto& neighbor : adj.second) {
-						hashValue ^= std::hash<int>()(neighbor) + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
-					}
-				}
-
-				return hashValue;
+				return seed;
 			}
 		};
 }
 
 
-
-
-/*
-	Function that returns if a graph G violates any rule in game
-args : A graph, g
-returns : false if graph violates game rule, else true
- */
 bool isViable(Graph g) {
 	// For each node, if node is not colored
 	// check adjacency list to ensure that no other color exists
@@ -178,72 +162,66 @@ bool isViable(Graph g) {
 }
 
 
-// Implement graph generation!!!
-class graphNode {
+
+
+class Color{
 	public:
-
-		graphNode(Graph g) {
-			parentGraph = g;
-			derivedList = {};
-			colorLimit = 0;
-
-			// Calculate color limit
-			for (int vertex = 0; vertex < parentGraph.getNumVertices(); vertex++) {
-				if (parentGraph.getColor(vertex) != -1) {
-					colorLimit++;	
-				}
-			}
-		}
-
-		void addDerived(graphNode n) {
-			derivedList.push_back(n);
-		}
-
-		int getColorLimit() {
-			return colorLimit;
-		}
-
-		Graph getGraph() {
-			return parentGraph;
-		}
-
-		list<graphNode> getDerived() {
-			return derivedList;
-		}
-
-		void displayNode() {
-			for (auto i : derivedList) {
-				Graph g = i.getGraph();
-				g.displayGraph();
-				cout << endl;
-				i.displayNode();
-			}
-		}
-
-	private:
-		list<graphNode> derivedList;
-		Graph parentGraph;
-		int colorLimit;
+		vector<int> coloring = {};
+		vector<Color> derivedColorings = {{}};
 };
 
+
+bool isViable(Graph g, Color c) {
+	for (int i = 0; i < c.coloring.size(); i++) {
+		if (c.coloring[i] != -1) {
+			for (auto adj : g.getAdjList(i)) {
+				if (c.coloring[i] != c.coloring[adj] && c.coloring[adj] != -1)
+					return false;
+			}
+		}
+	}
+
+	return true;
+};
+
+
 int countDistinctColors(Graph g) {
-    set<int> colorSet;
-    for (auto v : g.getVertices()) {
-        if (v.color != -1) {
-            colorSet.insert(v.color);
-        }
-    }
-    return colorSet.size();
+	set<int> colorSet;
+	for (auto v : g.getVertices()) {
+		if (v.color != -1) {
+			colorSet.insert(v.color);
+		}
+	}
+	return colorSet.size();
+}
+
+
+int countDistinctColors(Color c) {
+	set<int> colorSet;
+	for (auto v : c.coloring) {
+		if (v != -1) {
+			colorSet.insert(v);
+		}
+	}
+	return colorSet.size();
+}
+
+int countPlacements(Color c) {
+	int count = 0;
+	for (auto c : c.coloring) {
+		if (c != -1) count++;
+	}
+	return count;
 }
 
 int countPlacements(Graph g) {
-    int count = 0;
-    for (auto v : g.getVertices()) {
-        if (v.color != -1) {
-            count++;
-        }
-    }
-    return count;
+	int count = 0;
+	for (auto v : g.getVertices()) {
+		if (v.color != -1) {
+			count++;
+		}
+	}
+	return count;
 }
 
 Graph minGraph, maxGraph;
@@ -254,72 +232,83 @@ Graph minPlacementGraph, maxPlacementGraph;
 int minPlacements = INT_MAX;
 int maxPlacements = 0;
 
-void generateDerivedGraphs(graphNode* node, unordered_map<Graph, bool> &knownGraphs) {
-	// Get parent graph
-	// Change node, check if this is already in knownGraphs
-	// If not in known graphs, check
-	// Add to derived graph list
-	Graph baseGraph = node->getGraph();
-
-	for (int vertex = 0; vertex < baseGraph.getNumVertices(); vertex++) {
-		if (baseGraph.getColor(vertex) == -1) {
-			for (int color = 0; color <= node->getColorLimit(); color++) {
-				// Change vertex color
-				Graph derivedGraph = baseGraph;
-				derivedGraph.setColor(vertex, color);
-
-				// check if Graph is already in list of known graphs
 
 
-				// check if Graph is valid if not in knownGraphs
-				if (knownGraphs.find(derivedGraph) == knownGraphs.end()) {
-					bool v = isViable(derivedGraph);
-					knownGraphs[derivedGraph] = v;
+// Translate into using just colorings
+void generateDerivedGraphs(Graph &baseGraph, Color* currColor, unordered_map<vector<int>, bool>& knownGraphs) {
 
-					// Recurse on derived graph
-					if (v) {
-						graphNode derivedNode(derivedGraph);
-						generateDerivedGraphs(&derivedNode, knownGraphs);
-						node->addDerived(derivedNode);	
+	// Start with empty graph
+	// Color some node i
+	// Recurse until all colored
 
-						int colorCount = countDistinctColors(derivedGraph);
+	for (int v = 0; v < currColor->coloring.size(); v++) {
+		if (currColor->coloring[v] == -1) {
+			for (int c = 0; c < countDistinctColors(*currColor) + 1; c++) {
+				Color newColor;
+				newColor.coloring = currColor->coloring;
+				int exchangedColor = newColor.coloring[v];
 
-                        if (colorCount < minColors) {
-                            minColors = colorCount;
-                            minGraph = derivedGraph;
-                        }
-                        if (colorCount > maxColors) {
-                            maxColors = colorCount;
-                            maxGraph = derivedGraph;
-                        }
+				newColor.coloring[v] = c;
 
-						int placementCount = countPlacements(derivedGraph);
-						if (placementCount < minPlacements) {
-							minPlacements = placementCount;
-							minPlacementGraph = derivedGraph;
-						}
-						if (placementCount > maxPlacements) {
-							maxPlacements = placementCount;
-							maxPlacementGraph = derivedGraph;
-						}
-					}	
+				// Is it proper?
+				if (knownGraphs.find(newColor.coloring) == knownGraphs.end()) {
+					bool isValid = isViable(baseGraph, newColor);
+					knownGraphs[newColor.coloring] = isValid;
+				}
+
+				// If valid
+				if (knownGraphs[newColor.coloring]) {
+					generateDerivedGraphs(baseGraph, &newColor, knownGraphs);
+					currColor->derivedColorings.push_back(newColor);
 				}
 			}
-		}
+		}	
+	}
+}
+
+void displayDerivedColorings(Color* c) {
+	for (int i : c->coloring)
+		cout << i << " ";
+	cout << endl;
+	for (auto derived : c->derivedColorings)
+		displayDerivedColorings(&derived);
+}
+
+
+int minimax(Graph& baseGraph, bool isMax, Color *currColor) {
+	int best = isMax ? 0 : INT_MAX;
+
+	// Already precomputed the colorings, so just run down them
+	for (auto derived : currColor->derivedColorings) {
+		// Recurse here
+		int currPossible = minimax(baseGraph, !isMax, &derived);
+
+		if ( (isMax && currPossible > best) || (!isMax && currPossible < best) )
+			best = currPossible;
+	}
+
+	// Check if node has no derived colorings as base case
+	if ( currColor->derivedColorings.size() != 0)
+		return best;
+	else {
+		for (auto color : currColor->coloring)
+			cout << color;
+		cout << endl;
+		return countPlacements(*currColor);
 	}
 }
 
 
-
 int main() {
 	// Create a graph with 5 vertices
-	Graph g(5);
+	Graph g(4);
+
 
 	// Add some edges to the graph
-	g.addEdge(0, 1);
-	g.addEdge(1, 2);
-	g.addEdge(2, 3);
-	g.addEdge(3, 4);
+	g.addEdge(0,1);
+	g.addEdge(1,2);
+	g.addEdge(2,3);
+	g.addEdge(3,0);
 
 	// Display the graph
 	g.displayGraph();
@@ -327,32 +316,41 @@ int main() {
 	// Is it viable?
 	cout << ((isViable(g)) ? "yes" : "no") << endl << endl;
 
-	// Generate derived graphs
-	graphNode rootNode(g);
-	unordered_map<Graph, bool> knownGraphs;
-	knownGraphs[g] = true;	
+	unordered_map<vector<int>, bool> knownGraphs;
+	Color baseColoring;
 
-	generateDerivedGraphs(&rootNode, knownGraphs);
-	
-	cout << "Minimum Color Graph (Least Colors: " << minColors << "):\n";
-    minGraph.displayGraph();
-	cout << endl;
+	for (int i = 0; i < g.getNumVertices(); i++)
+		baseColoring.coloring.push_back(-1);
 
-    cout << "Maximum Ccolor Graph (Most Colors: " << maxColors << "):\n";
-    maxGraph.displayGraph();
-	cout << endl;
+	knownGraphs[baseColoring.coloring] = true;	
 
-	cout << "Minimum Placement Graph (not fully filled) (Least Placements: " << minPlacements << "):\n";
-	minPlacementGraph.displayGraph();
-	cout << endl;
 
-	cout << "Maximum Placements Graph (Most Placements: " << maxPlacements << "):\n";
-	maxPlacementGraph.displayGraph();
-	cout << endl;
-	
-	// Maybe find a better way to display this
-	rootNode.displayNode();
+	generateDerivedGraphs(g, &baseColoring, knownGraphs);
 
+
+
+	/*
+		generateDerivedGraphs(&rootNode, knownGraphs);
+
+		cout << "Minimum Color Graph (Least Colors: " << minColors << "):\n";
+		minGraph.displayGraph();
+		cout << endl;
+
+		cout << "Maximum Ccolor Graph (Most Colors: " << maxColors << "):\n";
+		maxGraph.displayGraph();
+		cout << endl;
+
+		cout << "Minimum Placement Graph (not fully filled) (Least Placements: " << minPlacements << "):\n";
+		minPlacementGraph.displayGraph();
+		cout << endl;
+
+		cout << "Maximum Placements Graph (Most Placements: " << maxPlacements << "):\n";
+		maxPlacementGraph.displayGraph();
+		cout << endl;
+
+	*/
+
+	cout << minimax(g, false, &baseColoring);
 	return 0;
 }
 
