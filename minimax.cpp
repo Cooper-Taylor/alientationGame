@@ -298,6 +298,64 @@ int minimax(Graph& baseGraph, bool isMax, Color *currColor) {
 	}
 }
 
+int calculateScore(const Graph& graph) {
+    // Maximizer wants more placements
+    return countPlacements(graph);
+}
+
+// Corrected minimax implementation
+int minimax(graphNode* node, bool isMax, vector<graphNode*>& path, int depth = 0, int alpha = INT_MIN, int beta = INT_MAX) {
+    // Base case - node is leaf
+    if (node->getDerived().empty()) {
+        path.push_back(node);
+        return calculateScore(node->getGraph());
+    }
+
+    if (isMax) {
+        int bestScore = INT_MIN;
+        vector<graphNode*> bestPath;
+        
+        for (graphNode* child : node->getDerived()) {
+            vector<graphNode*> childPath;
+            int score = minimax(child, false, childPath, depth + 1, alpha, beta);
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestPath = childPath;
+                //alpha = max(alpha, bestScore);
+            }
+            
+        }
+        
+        // Update path with best move
+        path = bestPath;
+        path.push_back(node);
+        return bestScore;
+    } 
+    else {
+        int bestScore = INT_MAX;
+        vector<graphNode*> bestPath;
+        
+        for (graphNode* child : node->getDerived()) {
+            vector<graphNode*> childPath;
+            int score = minimax(child, true, childPath, depth + 1, alpha, beta);
+            
+            if (score < bestScore) {
+                bestScore = score;
+                bestPath = childPath;
+                //beta = min(beta, bestScore);
+            }
+            
+        }
+        
+        // Update path with best move
+        path = bestPath;
+        path.push_back(node);
+        return bestScore;
+    }
+}
+
+
 
 int main() {
 	// Create a graph with 5 vertices
